@@ -7,14 +7,14 @@ import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { AlignLeft, AlignCenter, AlignRight, Type } from 'lucide-react';
+import { AlignLeft, AlignCenter, AlignRight, Type, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEditorStore } from '@/lib/editor/store';
 import { FontSelector } from './FontSelector';
 import { EDITOR_CONSTANTS, FONT_WEIGHTS } from '@/lib/editor/constants';
 import { TextProperties } from '@/types/editor';
 
 export function TextPropertiesPanel() {
-  const { layers, selectedLayerId, updateTextProperties, canvas } = useEditorStore();
+  const { layers, selectedLayerId, updateTextProperties, canvas, leftPanelCollapsed, toggleLeftPanel } = useEditorStore();
   const selectedLayer = layers.find((l) => l.id === selectedLayerId);
   
   const [localText, setLocalText] = useState('');
@@ -64,26 +64,42 @@ export function TextPropertiesPanel() {
     canvas.renderAll();
   };
 
-  if (!selectedLayer) {
-    return (
-      <div className="w-80 bg-white border-r border-gray-200 p-4">
-        <p className="text-sm text-gray-500 text-center py-8">
-          Select a text layer to edit its properties
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="w-80 bg-white border-r border-gray-200 flex flex-col h-full">
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="font-semibold flex items-center gap-2">
-          <Type className="h-4 w-4" />
-          Text Properties
-        </h2>
+    <div className={`bg-white border-r border-gray-200 flex flex-col h-full transition-all duration-300 ${
+      leftPanelCollapsed ? 'w-12' : 'w-80'
+    }`}>
+      <div className={`border-b border-gray-200 ${leftPanelCollapsed ? 'p-2' : 'p-4'}`}>
+        {leftPanelCollapsed ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleLeftPanel}
+            className="w-full p-0 h-8"
+            title="Expand text properties"
+          >
+            <Type className="h-4 w-4" />
+          </Button>
+        ) : (
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold flex items-center gap-2">
+              <Type className="h-4 w-4" />
+              Text Properties
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleLeftPanel}
+              className="h-6 w-6 p-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {!leftPanelCollapsed && (
+        selectedLayer ? (
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* Text Content */}
         <div className="space-y-2">
           <Label>Text Content</Label>
@@ -245,7 +261,15 @@ export function TextPropertiesPanel() {
             <span className="text-sm w-12 text-right">{properties.charSpacing || 0}</span>
           </div>
         </div>
-      </div>
+        </div>
+        ) : (
+          <div className="p-4">
+            <p className="text-sm text-gray-500 text-center py-8">
+              Select a text layer to edit its properties
+            </p>
+          </div>
+        )
+      )}
     </div>
   );
 }

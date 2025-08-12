@@ -12,6 +12,8 @@ import {
   GripVertical,
   Layers,
   Copy,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useEditorStore } from '@/lib/editor/store';
 import { cn } from '@/lib/utils';
@@ -26,6 +28,8 @@ export function LayerPanel() {
     toggleLayerVisibility,
     toggleLayerLock,
     reorderLayers,
+    layersPanelCollapsed,
+    toggleLayersPanel,
   } = useEditorStore();
 
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -53,16 +57,41 @@ export function LayerPanel() {
   };
 
   return (
-    <div className="w-80 bg-white border-l border-gray-200 flex flex-col h-full">
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="font-semibold flex items-center gap-2">
-          <Layers className="h-4 w-4" />
-          Layers
-        </h2>
+    <div className={`bg-white border-l border-gray-200 flex flex-col h-full transition-all duration-300 ${
+      layersPanelCollapsed ? 'w-12' : 'w-80'
+    }`}>
+      <div className={`border-b border-gray-200 ${layersPanelCollapsed ? 'p-2' : 'p-4'}`}>
+        {layersPanelCollapsed ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleLayersPanel}
+            className="w-full p-0 h-8"
+            title="Expand layers"
+          >
+            <Layers className="h-4 w-4" />
+          </Button>
+        ) : (
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold flex items-center gap-2">
+              <Layers className="h-4 w-4" />
+              Layers
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleLayersPanel}
+              className="h-6 w-6 p-0"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
-      <ScrollArea className="flex-1">
-        <div className="p-2">
+      {!layersPanelCollapsed && (
+        <ScrollArea className="flex-1">
+          <div className="p-2">
           {layers.length === 0 ? (
             <p className="text-sm text-gray-500 text-center py-8">
               No layers yet. Add text to get started.
@@ -177,8 +206,9 @@ export function LayerPanel() {
               ))}
             </div>
           )}
-        </div>
-      </ScrollArea>
+          </div>
+        </ScrollArea>
+      )}
     </div>
   );
 }

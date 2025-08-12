@@ -2,7 +2,7 @@
 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { History, Undo2, Redo2 } from 'lucide-react';
+import { History, Undo2, Redo2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEditorStore } from '@/lib/editor/store';
 import { cn } from '@/lib/utils';
 
@@ -14,18 +14,39 @@ export function HistoryPanel() {
     redo,
     canUndo,
     canRedo,
+    historyPanelCollapsed,
+    toggleHistoryPanel,
   } = useEditorStore();
 
   return (
-    <div className="w-64 bg-white border-l border-gray-200 flex flex-col" data-testid="history-panel">
+    <div className={`bg-white border-l border-gray-200 flex flex-col transition-all duration-300 ${
+      historyPanelCollapsed ? 'w-12' : 'w-64'
+    }`} data-testid="history-panel">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold flex items-center gap-2">
+      <div className={`border-b border-gray-200 ${historyPanelCollapsed ? 'p-2' : 'p-4'}`}>
+        {historyPanelCollapsed ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleHistoryPanel}
+            className="w-full p-0 h-8 relative"
+            title="Expand history"
+          >
             <History className="h-4 w-4" />
-            History
-          </h3>
-          <div className="flex gap-1">
+            {history.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                {history.length}
+              </span>
+            )}
+          </Button>
+        ) : (
+          <> 
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <History className="h-4 w-4" />
+              History
+            </h3>
+            <div className="flex gap-1">
             <Button
               variant="ghost"
               size="icon"
@@ -46,16 +67,27 @@ export function HistoryPanel() {
             >
               <Redo2 className="h-4 w-4" />
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleHistoryPanel}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
-        </div>
-        <p className="text-xs text-gray-500 mt-1">
-          {history.length} action{history.length !== 1 ? 's' : ''} • 
-          Step {historyIndex + 1} of {history.length}
-        </p>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+            {history.length} action{history.length !== 1 ? 's' : ''} • 
+            Step {historyIndex + 1} of {history.length}
+          </p>
+          </>
+        )}
       </div>
 
       {/* History List */}
-      <ScrollArea className="flex-1">
+      {!historyPanelCollapsed && (
+        <ScrollArea className="flex-1">
         <div className="p-2">
           {history.length === 0 ? (
             <p className="text-sm text-gray-500 text-center py-4">
@@ -103,10 +135,12 @@ export function HistoryPanel() {
             </div>
           )}
         </div>
-      </ScrollArea>
+        </ScrollArea>
+      )}
 
       {/* Footer */}
-      <div className="p-3 border-t border-gray-200">
+      {!historyPanelCollapsed && (
+        <div className="p-3 border-t border-gray-200">
         <p className="text-xs text-gray-500 text-center">
           {historyIndex >= 0 ? (
             <>Current: {history[historyIndex]?.description}</>
@@ -114,7 +148,8 @@ export function HistoryPanel() {
             'Initial state'
           )}
         </p>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

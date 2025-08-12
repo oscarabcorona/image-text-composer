@@ -12,11 +12,36 @@ interface EditorStore extends CanvasState {
   history: EditorCommand[];
   historyIndex: number;
   isAutoSaveEnabled: boolean;
+  zoomLevel: number;
+  isPanning: boolean;
+  viewportTransform: number[];
+  
+  // Panel visibility
+  leftPanelCollapsed: boolean;
+  layersPanelCollapsed: boolean;
+  historyPanelCollapsed: boolean;
 
   // Canvas actions
   setCanvas: (canvas: Canvas) => void;
   setBackgroundImage: (dataUrl: string) => void;
   clearCanvas: () => void;
+  
+  // Zoom actions
+  setZoomLevel: (level: number) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  fitToWindow: () => void;
+  resetZoom: () => void;
+  
+  // Pan actions
+  setPanning: (isPanning: boolean) => void;
+  setViewportTransform: (transform: number[]) => void;
+  resetViewport: () => void;
+  
+  // Panel actions
+  toggleLeftPanel: () => void;
+  toggleLayersPanel: () => void;
+  toggleHistoryPanel: () => void;
 
   // Layer actions
   addTextLayer: (text?: string) => TextLayer;
@@ -66,6 +91,12 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   history: [],
   historyIndex: -1,
   isAutoSaveEnabled: true,
+  zoomLevel: EDITOR_CONSTANTS.ZOOM.DEFAULT,
+  isPanning: false,
+  viewportTransform: [1, 0, 0, 1, 0, 0], // Default identity matrix
+  leftPanelCollapsed: false,
+  layersPanelCollapsed: false,
+  historyPanelCollapsed: false,
 
   setCanvas: (canvas) => {
     set({ canvas, isCanvasReady: true, isCanvasDisposed: false });
@@ -506,6 +537,152 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     const state = get();
     autoSaveService.clear();
     state.clearCanvas();
-    set({ ...initialState, canvas: state.canvas });
+    set({ ...initialState, canvas: state.canvas, zoomLevel: EDITOR_CONSTANTS.ZOOM.DEFAULT });
+  },
+
+  // Zoom actions
+  setZoomLevel: (targetLevel) => {
+    const { canvas, zoomLevel: currentLevel } = get();
+    if (!canvas) return;
+
+    // Clamp zoom level between min and max
+    const clampedLevel = Math.max(
+      EDITOR_CONSTANTS.ZOOM.MIN,
+      Math.min(EDITOR_CONSTANTS.ZOOM.MAX, targetLevel)
+    );
+
+    // If very close to current level, just set it directly
+    if (Math.abs(clampedLevel - currentLevel) < 0.001) {
+      canvas.setZoom(clampedLevel);
+      canvas.requestRenderAll();
+      set({ zoomLevel: clampedLevel });
+      return;
+    }
+
+    // Smooth zoom animation
+    const startTime = Date.now();
+    const duration = EDITOR_CONSTANTS.ZOOM.ANIMATION_DURATION;
+    const startZoom = currentLevel;
+    const deltaZoom = clampedLevel - startZoom;
+
+    const animateZoom = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Ease-out cubic for smooth deceleration
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      const currentZoom = startZoom + deltaZoom * easeOut;
+      
+      canvas.setZoom(currentZoom);
+      canvas.requestRenderAll();
+      set({ zoomLevel: currentZoom });
+
+      if (progress < 1) {
+        requestAnimationFrame(animateZoom);
+      }
+    };
+
+    requestAnimationFrame(animateZoom);
+  },
+
+  zoomIn: () => {
+    const { zoomLevel } = get();
+    const newLevel = zoomLevel + EDITOR_CONSTANTS.ZOOM.STEP;
+    get().setZoomLevel(newLevel);
+  },
+
+  zoomOut: () => {
+    const { zoomLevel } = get();
+    const newLevel = zoomLevel - EDITOR_CONSTANTS.ZOOM.STEP;
+    get().setZoomLevel(newLevel);
+  },
+
+  resetZoom: () => {
+    get().setZoomLevel(EDITOR_CONSTANTS.ZOOM.DEFAULT);
+  },
+
+  fitToWindow: () => {
+    const { canvas, backgroundImage } = get();
+    if (!canvas) return;
+
+    // Calculate zoom to fit the canvas content in the viewport
+    const canvasContainer = canvas.getElement().parentElement;
+    if (!canvasContainer) return;
+
+    const containerWidth = canvasContainer.clientWidth;
+    const containerHeight = canvasContainer.clientHeight;
+    
+    // Use background image dimensions if available, otherwise use canvas dimensions
+    const contentWidth = backgroundImage ? (backgroundImage as any).width : canvas.getWidth();
+    const contentHeight = backgroundImage ? (backgroundImage as any).height : canvas.getHeight();
+
+    const scaleX = containerWidth / contentWidth;
+    const scaleY = containerHeight / contentHeight;
+    const scale = Math.min(scaleX, scaleY) * 0.9; // 90% to leave some padding
+
+    get().setZoomLevel(scale);
+  },
+
+  // Pan actions
+  setPanning: (isPanning) => {
+    const { canvas } = get();
+    if (!canvas) return;
+
+    set({ isPanning });
+    
+    if (isPanning) {
+      canvas.defaultCursor = 'grab';
+      canvas.hoverCursor = 'grab';
+      // Disable selection while panning
+      canvas.selection = false;
+      canvas.forEachObject((obj) => {
+        obj.selectable = false;
+        obj.evented = false;
+      });
+    } else {
+      canvas.defaultCursor = 'default';
+      canvas.hoverCursor = 'move';
+      // Re-enable selection
+      canvas.selection = true;
+      canvas.forEachObject((obj) => {
+        const layer = get().layers.find(l => l.object === obj);
+        if (layer) {
+          obj.selectable = !layer.locked;
+          obj.evented = !layer.locked;
+        }
+      });
+    }
+    
+    canvas.requestRenderAll();
+  },
+
+  setViewportTransform: (transform) => {
+    const { canvas } = get();
+    if (!canvas) return;
+
+    canvas.setViewportTransform(transform);
+    set({ viewportTransform: transform });
+  },
+
+  resetViewport: () => {
+    const { canvas } = get();
+    if (!canvas) return;
+
+    const defaultTransform = [1, 0, 0, 1, 0, 0];
+    canvas.setViewportTransform(defaultTransform);
+    set({ viewportTransform: defaultTransform, zoomLevel: 1 });
+  },
+
+  // Panel actions
+  toggleLeftPanel: () => {
+    set((state) => ({ leftPanelCollapsed: !state.leftPanelCollapsed }));
+  },
+
+  toggleLayersPanel: () => {
+    set((state) => ({ layersPanelCollapsed: !state.layersPanelCollapsed }));
+  },
+
+  toggleHistoryPanel: () => {
+    set((state) => ({ historyPanelCollapsed: !state.historyPanelCollapsed }));
   },
 }));

@@ -37,6 +37,15 @@ export const EDITOR_CONSTANTS = {
     DEFAULT_FORMAT: 'png' as const,
     DEFAULT_QUALITY: 1,
   },
+  ZOOM: {
+    MIN: 0.1,
+    MAX: 3,
+    STEP: 0.05, // Reduced from 0.1 for smoother zoom
+    DEFAULT: 1,
+    WHEEL_DELTA: 0.02, // Reduced for smoother wheel zoom
+    ANIMATION_DURATION: 150, // ms for smooth transitions
+    PRESETS: [0.25, 0.5, 0.75, 1, 1.5, 2],
+  },
 } as const;
 
 export const GOOGLE_FONTS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_FONTS_API_KEY || '';

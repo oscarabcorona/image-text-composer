@@ -14,6 +14,15 @@ export function EditorCanvas() {
     layers,
     saveState,
     isAutoSaveEnabled,
+    zoomIn,
+    zoomOut,
+    resetZoom,
+    fitToWindow,
+    setZoomLevel,
+    zoomLevel,
+    isPanning,
+    setPanning,
+    setViewportTransform,
   } = useEditorStore();
 
   // Initialize canvas only once
@@ -35,10 +44,12 @@ export function EditorCanvas() {
     // Set canvas in store
     setCanvas(fabricCanvas);
     
-    // Expose canvas for testing
+    // Expose canvas and store for testing
     if (typeof window !== 'undefined') {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).canvas = fabricCanvas;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).useEditorStore = useEditorStore;
     }
     
     // Initial render
@@ -128,6 +139,29 @@ export function EditorCanvas() {
     if (!fabricCanvas) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Handle zoom shortcuts first (they work regardless of selection)
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case '+':
+          case '=':
+            e.preventDefault();
+            zoomIn();
+            return;
+          case '-':
+            e.preventDefault();
+            zoomOut();
+            return;
+          case '0':
+            e.preventDefault();
+            resetZoom();
+            return;
+          case '9':
+            e.preventDefault();
+            fitToWindow();
+            return;
+        }
+      }
+
       const activeObject = fabricCanvas.getActiveObject();
       if (!activeObject || activeObject.type !== 'i-text') return;
 
@@ -161,7 +195,7 @@ export function EditorCanvas() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []); // No dependencies - canvas ref is stable
+  }, [zoomIn, zoomOut, resetZoom, fitToWindow]); // Add zoom function dependencies
 
   // Snap to center functionality
   useEffect(() => {
@@ -247,10 +281,126 @@ export function EditorCanvas() {
     });
   }, []); // No dependencies - canvas ref is stable
 
+  // Mouse wheel zoom
+  useEffect(() => {
+    const fabricCanvas = fabricCanvasRef.current;
+    if (!fabricCanvas) return;
+
+    const handleWheel = (opt: any) => {
+      const e = opt.e;
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const delta = e.deltaY > 0 ? -1 : 1; // Normalize scroll direction
+        let zoom = fabricCanvas.getZoom();
+        // Smaller zoom step for smoother scrolling
+        zoom = zoom + (delta * EDITOR_CONSTANTS.ZOOM.WHEEL_DELTA * zoom); // Proportional to current zoom
+
+        // Clamp zoom between min and max
+        zoom = Math.max(EDITOR_CONSTANTS.ZOOM.MIN, zoom);
+        zoom = Math.min(EDITOR_CONSTANTS.ZOOM.MAX, zoom);
+
+        // Get mouse position relative to canvas
+        const point = fabricCanvas.getPointer(e);
+        
+        // Zoom to point
+        fabricCanvas.zoomToPoint({ x: point.x, y: point.y }, zoom);
+        
+        // Update store
+        setZoomLevel(zoom);
+      }
+    };
+
+    fabricCanvas.on('mouse:wheel', handleWheel);
+
+    return () => {
+      fabricCanvas.off('mouse:wheel', handleWheel);
+    };
+  }, [setZoomLevel]);
+
+  // Pan functionality
+  useEffect(() => {
+    const fabricCanvas = fabricCanvasRef.current;
+    if (!fabricCanvas) return;
+
+    let isDragging = false;
+    let lastPosX = 0;
+    let lastPosY = 0;
+
+    // Handle space key for pan mode
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !isPanning) {
+        e.preventDefault();
+        setPanning(true);
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && isPanning) {
+        e.preventDefault();
+        setPanning(false);
+        isDragging = false;
+      }
+    };
+
+    // Mouse events for panning
+    const handleMouseDown = (opt: any) => {
+      if (isPanning) {
+        const evt = opt.e;
+        isDragging = true;
+        lastPosX = evt.clientX;
+        lastPosY = evt.clientY;
+        fabricCanvas.defaultCursor = 'grabbing';
+      }
+    };
+
+    const handleMouseMove = (opt: any) => {
+      if (isDragging && isPanning) {
+        const evt = opt.e;
+        const vpt = fabricCanvas.viewportTransform;
+        if (vpt) {
+          vpt[4] += evt.clientX - lastPosX;
+          vpt[5] += evt.clientY - lastPosY;
+          fabricCanvas.requestRenderAll();
+          setViewportTransform([...vpt]);
+        }
+        lastPosX = evt.clientX;
+        lastPosY = evt.clientY;
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (isPanning) {
+        isDragging = false;
+        fabricCanvas.defaultCursor = 'grab';
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    
+    fabricCanvas.on('mouse:down', handleMouseDown);
+    fabricCanvas.on('mouse:move', handleMouseMove);
+    fabricCanvas.on('mouse:up', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      
+      fabricCanvas.off('mouse:down', handleMouseDown);
+      fabricCanvas.off('mouse:move', handleMouseMove);
+      fabricCanvas.off('mouse:up', handleMouseUp);
+    };
+  }, [isPanning, setPanning, setViewportTransform]);
+
   return (
-    <div className="flex items-center justify-center bg-gray-100 p-8 min-h-[600px]">
-      <div className="shadow-2xl">
-        <canvas ref={canvasRef} className="border border-gray-300" />
+    <div className="flex-1 bg-gray-100 p-8 overflow-auto">
+      <div className="flex items-center justify-center min-h-[600px]">
+        <div className="shadow-2xl">
+          <canvas ref={canvasRef} className="border border-gray-300" />
+        </div>
       </div>
     </div>
   );
