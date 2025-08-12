@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -15,13 +15,20 @@ import {
   ZoomOut,
   Maximize2,
   Hand,
-  Github
+  Github,
+  Keyboard
 } from 'lucide-react';
 import { useEditorStore } from '@/lib/editor/store';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 // Removed fabric import as we'll pass data URL directly
 
 export function EditorToolbar() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const {
     canvas,
     setBackgroundImage,
@@ -241,10 +248,74 @@ export function EditorToolbar() {
             size="sm"
             onClick={() => setPanning(!isPanning)}
             disabled={!canvas}
-            title="Pan mode (Hold Space)"
+            title="Pan mode (Hold Alt)"
           >
             <Hand className="h-4 w-4" />
           </Button>
+
+          <div className="h-6 w-px bg-gray-300 mx-2" />
+
+          {/* Keyboard Shortcuts */}
+          <Popover open={showShortcuts} onOpenChange={setShowShortcuts}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                title="Keyboard shortcuts"
+              >
+                <Keyboard className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80" align="end">
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm mb-2">Keyboard Shortcuts</h3>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Undo</span>
+                    <kbd className="px-2 py-1 text-xs bg-gray-100 rounded">Ctrl/Cmd + Z</kbd>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Redo</span>
+                    <kbd className="px-2 py-1 text-xs bg-gray-100 rounded">Ctrl/Cmd + Y</kbd>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Redo (alt)</span>
+                    <kbd className="px-2 py-1 text-xs bg-gray-100 rounded">Ctrl/Cmd + Shift + Z</kbd>
+                  </div>
+                  <hr className="my-2" />
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Zoom In</span>
+                    <kbd className="px-2 py-1 text-xs bg-gray-100 rounded">Ctrl/Cmd + Plus</kbd>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Zoom Out</span>
+                    <kbd className="px-2 py-1 text-xs bg-gray-100 rounded">Ctrl/Cmd + Minus</kbd>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Reset Zoom</span>
+                    <kbd className="px-2 py-1 text-xs bg-gray-100 rounded">Ctrl/Cmd + 0</kbd>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Fit to Window</span>
+                    <kbd className="px-2 py-1 text-xs bg-gray-100 rounded">Ctrl/Cmd + 9</kbd>
+                  </div>
+                  <hr className="my-2" />
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Pan Mode</span>
+                    <kbd className="px-2 py-1 text-xs bg-gray-100 rounded">Hold Alt</kbd>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Nudge Text</span>
+                    <kbd className="px-2 py-1 text-xs bg-gray-100 rounded">Arrow Keys</kbd>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Nudge Faster</span>
+                    <kbd className="px-2 py-1 text-xs bg-gray-100 rounded">Shift + Arrow Keys</kbd>
+                  </div>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div className="flex items-center gap-2">

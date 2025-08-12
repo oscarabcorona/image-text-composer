@@ -328,16 +328,16 @@ export function EditorCanvas() {
     let lastPosX = 0;
     let lastPosY = 0;
 
-    // Handle space key for pan mode
+    // Handle Alt key for pan mode
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && !isPanning) {
+      if (e.altKey && !isPanning) {
         e.preventDefault();
         setPanning(true);
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && isPanning) {
+      if (!e.altKey && isPanning) {
         e.preventDefault();
         setPanning(false);
         isDragging = false;
