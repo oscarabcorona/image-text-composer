@@ -1,0 +1,9 @@
+{
+  "buildCommand": "pnpm build",
+  "installCommand": "pnpm install",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "env": {
+    "NEXT_PUBLIC_GOOGLE_FONTS_API_KEY": "@google_fonts_api_key"
+  }
+}

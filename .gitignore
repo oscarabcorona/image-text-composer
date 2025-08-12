@@ -44,3 +44,17 @@ next-env.d.ts
 .claude
 CLAUDE.MD
 hooks
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+/tests/screenshots/
+
+# Test files
+tests/*.png
+tests/*.jpg
+tests/*.jpeg
+
+# Challenge files
+Adomate_Full-Stack_Engineer_Remote_Challenge.pdf
