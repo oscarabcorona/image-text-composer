@@ -7,7 +7,16 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "HEADED=1 playwright test",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report",
+    "test:core": "playwright test tests/simple-test-fixed.spec.ts tests/core-requirements.spec.ts tests/image-upload.spec.ts",
+    "test:edge": "playwright test tests/memory-stress.spec.ts tests/canvas-boundaries-fixed.spec.ts tests/state-corruption.spec.ts tests/image-edge-cases.spec.ts tests/export-edge-cases.spec.ts tests/text-boundaries.spec.ts",
+    "test:perf": "playwright test tests/performance-stress.spec.ts tests/zoom-pan.spec.ts",
+    "test:integration": "playwright test tests/keyboard-interactions.spec.ts tests/bonus-features.spec.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
