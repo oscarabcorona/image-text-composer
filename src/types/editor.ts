@@ -18,6 +18,11 @@ export interface TextProperties {
   textAlign: 'left' | 'center' | 'right';
   lineHeight?: number;
   charSpacing?: number;
+  // Text shadow properties
+  shadowColor?: string;
+  shadowBlur?: number;
+  shadowOffsetX?: number;
+  shadowOffsetY?: number;
 }
 
 export interface CanvasState {

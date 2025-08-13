@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { Canvas, Line } from 'fabric';
+import * as fabric from 'fabric';
 import { useEditorStore } from '@/lib/editor/store';
 import { EDITOR_CONSTANTS } from '@/lib/editor/constants';
 
@@ -19,7 +20,6 @@ export function EditorCanvas() {
     resetZoom,
     fitToWindow,
     setZoomLevel,
-    zoomLevel,
     isPanning,
     setPanning,
     setViewportTransform,
@@ -286,7 +286,7 @@ export function EditorCanvas() {
     const fabricCanvas = fabricCanvasRef.current;
     if (!fabricCanvas) return;
 
-    const handleWheel = (opt: any) => {
+    const handleWheel = (opt: fabric.TPointerEventInfo<WheelEvent>) => {
       const e = opt.e;
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
@@ -305,7 +305,7 @@ export function EditorCanvas() {
         const point = fabricCanvas.getPointer(e);
         
         // Zoom to point
-        fabricCanvas.zoomToPoint({ x: point.x, y: point.y }, zoom);
+        fabricCanvas.zoomToPoint(new fabric.Point(point.x, point.y), zoom);
         
         // Update store
         setZoomLevel(zoom);
@@ -345,9 +345,9 @@ export function EditorCanvas() {
     };
 
     // Mouse events for panning
-    const handleMouseDown = (opt: any) => {
+    const handleMouseDown = (opt: fabric.TPointerEventInfo) => {
       if (isPanning) {
-        const evt = opt.e;
+        const evt = opt.e as MouseEvent;
         isDragging = true;
         lastPosX = evt.clientX;
         lastPosY = evt.clientY;
@@ -355,9 +355,9 @@ export function EditorCanvas() {
       }
     };
 
-    const handleMouseMove = (opt: any) => {
+    const handleMouseMove = (opt: fabric.TPointerEventInfo) => {
       if (isDragging && isPanning) {
-        const evt = opt.e;
+        const evt = opt.e as MouseEvent;
         const vpt = fabricCanvas.viewportTransform;
         if (vpt) {
           vpt[4] += evt.clientX - lastPosX;

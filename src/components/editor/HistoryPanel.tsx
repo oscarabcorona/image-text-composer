@@ -2,7 +2,7 @@
 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { History, Undo2, Redo2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { History, Undo2, Redo2, ChevronRight } from 'lucide-react';
 import { useEditorStore } from '@/lib/editor/store';
 import { cn } from '@/lib/utils';
 

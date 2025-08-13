@@ -10,7 +10,17 @@ import { useEditorStore } from '@/lib/editor/store';
 import { useAutoSave } from '@/hooks/editor/useAutoSave';
 
 export default function Home() {
-  const { undo, redo, canUndo, canRedo, loadState, toggleAllPanels } = useEditorStore();
+  const { 
+    undo, 
+    redo, 
+    canUndo, 
+    canRedo, 
+    loadState, 
+    toggleAllPanels,
+    selectedLayerId,
+    duplicateLayer,
+    deleteLayer
+  } = useEditorStore();
   useAutoSave();
 
   // Load saved state on mount
@@ -43,6 +53,10 @@ export default function Home() {
           // Toggle all panels with Cmd/Ctrl + B
           e.preventDefault();
           toggleAllPanels();
+        } else if (e.key === 'd' && selectedLayerId) {
+          // Duplicate layer with Cmd/Ctrl + D
+          e.preventDefault();
+          duplicateLayer(selectedLayerId);
         }
       }
       
@@ -51,11 +65,19 @@ export default function Home() {
         e.preventDefault();
         redo();
       }
+      
+      // Delete key to remove selected layer
+      if (e.key === 'Delete' && selectedLayerId) {
+        e.preventDefault();
+        if (confirm('Delete this layer?')) {
+          deleteLayer(selectedLayerId);
+        }
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo, canUndo, canRedo, toggleAllPanels]);
+  }, [undo, redo, canUndo, canRedo, toggleAllPanels, selectedLayerId, duplicateLayer, deleteLayer]);
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">

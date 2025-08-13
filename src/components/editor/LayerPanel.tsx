@@ -12,7 +12,6 @@ import {
   GripVertical,
   Layers,
   Copy,
-  ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
 import { useEditorStore } from '@/lib/editor/store';

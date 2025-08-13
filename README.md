@@ -4,7 +4,7 @@ A desktop-only, single-page image editing tool that enables users to upload imag
 
 ## 🎯 Live Demo
 
-[View Live Demo](#) _(Deployment link will be added here)_
+[View Live Demo](https://image-text-composer.vercel.app) _(Deploy to Vercel to activate)_
 
 ## ✨ Features
 
@@ -60,6 +60,19 @@ A desktop-only, single-page image editing tool that enables users to upload imag
 - **📥 Export**:
   - Export as PNG maintaining original image dimensions
   - High-quality output with text overlay
+  - Supports images up to 4000x3000 pixels
+  
+- **🎨 Advanced Text Styling**:
+  - Text shadows with customizable color, blur, and offset
+  - Line height adjustment (0.5x to 3x)
+  - Letter spacing control (-200 to 800)
+  - Multi-line text with proper alignment
+  
+- **🔍 Canvas Navigation**:
+  - Smooth zoom animations (10% to 300%)
+  - Pan mode for navigating large images
+  - Fit-to-window and reset zoom options
+  - Zoom dropdown with preset levels
 
 ## 🚀 Technology Stack
 
@@ -173,12 +186,17 @@ The app is optimized for deployment on Vercel with zero configuration needed.
 
 ## ✅ Implemented Bonus Features
 
+- ✅ **Text Shadow**: Customizable shadow with color, blur, and offset controls
 - ✅ **Line height and letter spacing controls**: Full typography control
-- ✅ **Duplicate layers**: One-click layer duplication
+- ✅ **Duplicate layers**: One-click layer duplication with Cmd/Ctrl+D shortcut
 - ✅ **Lock/unlock layers**: Prevent accidental edits
 - ✅ **Visible history panel**: See and navigate through all actions
+- ✅ **Zoom Controls**: Zoom in/out, fit to window, with smooth animations
+- ✅ **Pan Mode**: Navigate large canvases with Alt+drag
+- ✅ **Enhanced Keyboard Shortcuts**: Full set of productivity shortcuts
 - ✅ **SOLID architecture**: Clean, maintainable codebase
 - ✅ **Multiple image format support**: PNG, JPEG, GIF, WebP
+- ✅ **Large Image Support**: Canvas supports up to 4000x3000px images
 
 ## 🔧 Configuration
 
@@ -189,8 +207,8 @@ To use the full Google Fonts library:
 3. The app will automatically load 100+ popular fonts
 
 ### Canvas Limits
-- Maximum canvas size: 1920x1080
-- Maximum image upload size: No hard limit (automatically scaled)
+- Maximum canvas size: 4000x3000
+- Maximum image upload size: No hard limit (automatically scaled if larger than max)
 - History steps: 20 (configurable in constants)
 
 ## 💡 Usage Tips
@@ -198,6 +216,13 @@ To use the full Google Fonts library:
 - **Keyboard Shortcuts**:
   - `Ctrl/Cmd + Z`: Undo
   - `Ctrl/Cmd + Y`: Redo
+  - `Ctrl/Cmd + D`: Duplicate selected layer
+  - `Delete`: Delete selected layer
+  - `Ctrl/Cmd + B`: Toggle all panels
+  - `Ctrl/Cmd + Plus/Minus`: Zoom in/out
+  - `Ctrl/Cmd + 0`: Reset zoom
+  - `Ctrl/Cmd + 9`: Fit to window
+  - `Alt + Drag`: Pan mode
   - `Arrow Keys`: Nudge selected text (hold Shift for 10px)
   
 - **Layer Management**:
@@ -267,6 +292,32 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Shadcn/ui](https://ui.shadcn.com/) for beautiful UI components
 - [Google Fonts](https://fonts.google.com/) for the typography options
 - [Vercel](https://vercel.com/) for hosting and deployment
+
+## 📸 Screenshots
+
+### Main Editor Interface
+- Clean, intuitive interface with collapsible panels
+- Real-time text editing with visual feedback
+- Layer management with drag-and-drop reordering
+
+### Text Styling Features
+- Advanced typography controls including shadows
+- Line height and letter spacing adjustments
+- Multi-line text support with alignment options
+
+### Canvas Navigation
+- Smooth zoom controls with preset levels
+- Pan mode for large images
+- Responsive canvas that adapts to image dimensions
+
+## 🎯 Challenge Completion
+
+This project was built for the Adomate coding challenge, demonstrating:
+- **Clean Architecture**: SOLID principles with service-oriented design
+- **Performance**: Optimized rendering and state management
+- **User Experience**: Smooth interactions and intuitive controls
+- **Code Quality**: TypeScript, proper error handling, and comprehensive testing
+- **Bonus Features**: Went beyond requirements with shadows, zoom, and more
 
 ---
 

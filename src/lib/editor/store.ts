@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Canvas, FabricImage, IText } from 'fabric';
+import * as fabric from 'fabric';
 import { v4 as uuidv4 } from 'uuid';
 import { CanvasState, TextLayer, TextProperties, EditorCommand } from '@/types/editor';
 import { EDITOR_CONSTANTS } from './constants';
@@ -418,6 +419,33 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         layer.object.set('lineHeight', value);
       } else if (key === 'charSpacing' && value !== undefined) {
         layer.object.set('charSpacing', value);
+      } else if (key.startsWith('shadow')) {
+        // Handle shadow properties - get current shadow or create new one
+        const currentShadow = layer.object.shadow as fabric.Shadow | null;
+        const shadowConfig = {
+          color: currentShadow?.color || '#000000',
+          blur: currentShadow?.blur || 0,
+          offsetX: currentShadow?.offsetX || 0,
+          offsetY: currentShadow?.offsetY || 0,
+        };
+        
+        // Update the specific shadow property
+        if (key === 'shadowColor') {
+          shadowConfig.color = value as string;
+        } else if (key === 'shadowBlur') {
+          shadowConfig.blur = value as number;
+        } else if (key === 'shadowOffsetX') {
+          shadowConfig.offsetX = value as number;
+        } else if (key === 'shadowOffsetY') {
+          shadowConfig.offsetY = value as number;
+        }
+        
+        // Apply shadow only if it has some visible effect
+        if (shadowConfig.blur > 0 || shadowConfig.offsetX !== 0 || shadowConfig.offsetY !== 0) {
+          layer.object.set('shadow', new fabric.Shadow(shadowConfig));
+        } else {
+          layer.object.set('shadow', null);
+        }
       } else {
         layer.object.set(key as keyof IText, value);
       }
@@ -614,8 +642,8 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     const containerHeight = canvasContainer.clientHeight;
     
     // Use background image dimensions if available, otherwise use canvas dimensions
-    const contentWidth = backgroundImage ? (backgroundImage as any).width : canvas.getWidth();
-    const contentHeight = backgroundImage ? (backgroundImage as any).height : canvas.getHeight();
+    const contentWidth = backgroundImage ? (backgroundImage as FabricImage).width : canvas.getWidth();
+    const contentHeight = backgroundImage ? (backgroundImage as FabricImage).height : canvas.getHeight();
 
     const scaleX = containerWidth / contentWidth;
     const scaleY = containerHeight / contentHeight;
@@ -661,7 +689,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     const { canvas } = get();
     if (!canvas) return;
 
-    canvas.setViewportTransform(transform);
+    canvas.setViewportTransform(transform as fabric.TMat2D);
     set({ viewportTransform: transform });
   },
 
@@ -670,7 +698,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     if (!canvas) return;
 
     const defaultTransform = [1, 0, 0, 1, 0, 0];
-    canvas.setViewportTransform(defaultTransform);
+    canvas.setViewportTransform(defaultTransform as fabric.TMat2D);
     set({ viewportTransform: defaultTransform, zoomLevel: 1 });
   },
 

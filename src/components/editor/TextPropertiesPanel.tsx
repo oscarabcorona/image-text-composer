@@ -7,11 +7,12 @@ import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { AlignLeft, AlignCenter, AlignRight, Type, ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlignLeft, AlignCenter, AlignRight, Type, ChevronLeft } from 'lucide-react';
 import { useEditorStore } from '@/lib/editor/store';
 import { FontSelector } from './FontSelector';
 import { EDITOR_CONSTANTS, FONT_WEIGHTS } from '@/lib/editor/constants';
 import { TextProperties } from '@/types/editor';
+import * as fabric from 'fabric';
 
 export function TextPropertiesPanel() {
   const { layers, selectedLayerId, updateTextProperties, canvas, leftPanelCollapsed, toggleLeftPanel } = useEditorStore();
@@ -41,6 +42,10 @@ export function TextPropertiesPanel() {
         textAlign: obj.textAlign as 'left' | 'center' | 'right' || 'left',
         lineHeight: obj.lineHeight,
         charSpacing: obj.charSpacing,
+        shadowColor: (obj.shadow as fabric.Shadow)?.color || '#000000',
+        shadowBlur: (obj.shadow as fabric.Shadow)?.blur || 0,
+        shadowOffsetX: (obj.shadow as fabric.Shadow)?.offsetX || 0,
+        shadowOffsetY: (obj.shadow as fabric.Shadow)?.offsetY || 0,
       });
     }
   }, [selectedLayer]);
@@ -259,6 +264,85 @@ export function TextPropertiesPanel() {
               className="flex-1"
             />
             <span className="text-sm w-12 text-right">{properties.charSpacing || 0}</span>
+          </div>
+        </div>
+
+        {/* Shadow Section */}
+        <div className="border-t pt-4 mt-4">
+          <h4 className="font-medium mb-3">Text Shadow</h4>
+          
+          {/* Shadow Color */}
+          <div className="space-y-2">
+            <Label>Shadow Color</Label>
+            <div className="flex items-center gap-2">
+              <div
+                className="w-10 h-10 rounded border cursor-pointer"
+                style={{ backgroundColor: properties.shadowColor || '#000000' }}
+                onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'color';
+                  input.value = properties.shadowColor || '#000000';
+                  input.onchange = (e) => {
+                    updateProperty('shadowColor', (e.target as HTMLInputElement).value);
+                  };
+                  input.click();
+                }}
+              />
+              <Input
+                type="text"
+                value={properties.shadowColor || '#000000'}
+                onChange={(e) => updateProperty('shadowColor', e.target.value)}
+                className="flex-1"
+              />
+            </div>
+          </div>
+
+          {/* Shadow Blur */}
+          <div className="space-y-2 mt-3">
+            <Label>Shadow Blur</Label>
+            <div className="flex items-center gap-2">
+              <Slider
+                value={[properties.shadowBlur || 0]}
+                onValueChange={([value]) => updateProperty('shadowBlur', value)}
+                min={0}
+                max={50}
+                step={1}
+                className="flex-1"
+              />
+              <span className="text-sm w-12 text-right">{properties.shadowBlur || 0}</span>
+            </div>
+          </div>
+
+          {/* Shadow Offset X */}
+          <div className="space-y-2 mt-3">
+            <Label>Shadow Offset X</Label>
+            <div className="flex items-center gap-2">
+              <Slider
+                value={[properties.shadowOffsetX || 0]}
+                onValueChange={([value]) => updateProperty('shadowOffsetX', value)}
+                min={-50}
+                max={50}
+                step={1}
+                className="flex-1"
+              />
+              <span className="text-sm w-12 text-right">{properties.shadowOffsetX || 0}</span>
+            </div>
+          </div>
+
+          {/* Shadow Offset Y */}
+          <div className="space-y-2 mt-3">
+            <Label>Shadow Offset Y</Label>
+            <div className="flex items-center gap-2">
+              <Slider
+                value={[properties.shadowOffsetY || 0]}
+                onValueChange={([value]) => updateProperty('shadowOffsetY', value)}
+                min={-50}
+                max={50}
+                step={1}
+                className="flex-1"
+              />
+              <span className="text-sm w-12 text-right">{properties.shadowOffsetY || 0}</span>
+            </div>
           </div>
         </div>
         </div>

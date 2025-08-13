@@ -42,13 +42,10 @@ export function EditorToolbar() {
     setAutoSave,
     originalImageWidth,
     originalImageHeight,
-    canvasWidth,
-    canvasHeight,
     zoomLevel,
     zoomIn,
     zoomOut,
     fitToWindow,
-    resetZoom,
     setZoomLevel,
     isPanning,
     setPanning,
@@ -138,7 +135,7 @@ export function EditorToolbar() {
 
         // Restore original canvas state
         canvas.setZoom(currentZoom);
-        canvas.setViewportTransform(currentVpt);
+        canvas.setViewportTransform(currentVpt as fabric.TMat2D);
         canvas.renderAll();
 
       } else {
@@ -178,7 +175,7 @@ export function EditorToolbar() {
         await new Promise<void>((resolve, reject) => {
           img.onload = () => {
             // Fill background color first
-            exportCtx.fillStyle = canvas.backgroundColor || '#ffffff';
+            exportCtx.fillStyle = (canvas.backgroundColor as string) || '#ffffff';
             exportCtx.fillRect(0, 0, originalImageWidth, originalImageHeight);
             
             // Draw the fabric export to our export canvas
@@ -195,7 +192,7 @@ export function EditorToolbar() {
 
         // Restore original canvas state
         canvas.setZoom(currentZoom);
-        canvas.setViewportTransform(currentVpt);
+        canvas.setViewportTransform(currentVpt as fabric.TMat2D);
         canvas.renderAll();
 
         // Clean up
@@ -262,7 +259,7 @@ export function EditorToolbar() {
 
           if (exportCtx) {
             // Fill background
-            exportCtx.fillStyle = canvas.backgroundColor || '#ffffff';
+            exportCtx.fillStyle = (canvas.backgroundColor as string) || '#ffffff';
             exportCtx.fillRect(0, 0, originalImageWidth, originalImageHeight);
 
             // Draw the canvas content with precise dimensions using ACTUAL source dimensions
@@ -285,7 +282,7 @@ export function EditorToolbar() {
 
             // Restore original canvas state
             canvas.setZoom(currentZoom);
-            canvas.setViewportTransform(currentVpt);
+            canvas.setViewportTransform(currentVpt as fabric.TMat2D);
             canvas.renderAll();
 
             // Clean up
@@ -544,6 +541,14 @@ export function EditorToolbar() {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Toggle All Panels</span>
                     <kbd className="px-2 py-1 text-xs bg-gray-100 rounded">Ctrl/Cmd + B</kbd>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Duplicate Layer</span>
+                    <kbd className="px-2 py-1 text-xs bg-gray-100 rounded">Ctrl/Cmd + D</kbd>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Delete Layer</span>
+                    <kbd className="px-2 py-1 text-xs bg-gray-100 rounded">Delete</kbd>
                   </div>
                 </div>
               </div>
