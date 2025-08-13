@@ -43,7 +43,6 @@ next-env.d.ts
 # Claude
 .claude
 CLAUDE.MD
-hooks
 
 # Playwright
 /test-results/
