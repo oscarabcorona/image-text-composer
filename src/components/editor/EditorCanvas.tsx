@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Canvas, Line } from 'fabric';
 import * as fabric from 'fabric';
 import { useEditorStore } from '@/lib/editor/store';
@@ -9,6 +9,7 @@ import { EDITOR_CONSTANTS } from '@/lib/editor/constants';
 export function EditorCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricCanvasRef = useRef<Canvas | null>(null);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
   const {
     setCanvas,
     selectLayer,
@@ -23,6 +24,7 @@ export function EditorCanvas() {
     isPanning,
     setPanning,
     setViewportTransform,
+    setBackgroundImage,
   } = useEditorStore();
 
   // Initialize canvas only once
@@ -292,10 +294,17 @@ export function EditorCanvas() {
         e.preventDefault();
         e.stopPropagation();
 
-        const delta = e.deltaY > 0 ? -1 : 1; // Normalize scroll direction
+        // Normalize delta across browsers and platforms
+        let delta = e.deltaY;
+        if (e.deltaMode === 1) {
+          // Firefox uses lines mode
+          delta *= 40;
+        }
+        
+        // Calculate zoom change with smooth sensitivity
+        const zoomSpeed = 0.003; // Balanced for smooth control
         let zoom = fabricCanvas.getZoom();
-        // Smaller zoom step for smoother scrolling
-        zoom = zoom + (delta * EDITOR_CONSTANTS.ZOOM.WHEEL_DELTA * zoom); // Proportional to current zoom
+        zoom = zoom * (1 - delta * zoomSpeed);
 
         // Clamp zoom between min and max
         zoom = Math.max(EDITOR_CONSTANTS.ZOOM.MIN, zoom);
@@ -309,6 +318,12 @@ export function EditorCanvas() {
         
         // Update store
         setZoomLevel(zoom);
+        
+        // Also update viewport transform in store
+        const vpt = fabricCanvas.viewportTransform;
+        if (vpt) {
+          setViewportTransform([...vpt]);
+        }
       }
     };
 
@@ -317,7 +332,7 @@ export function EditorCanvas() {
     return () => {
       fabricCanvas.off('mouse:wheel', handleWheel);
     };
-  }, [setZoomLevel]);
+  }, [setZoomLevel, setViewportTransform]);
 
   // Pan functionality
   useEffect(() => {
@@ -395,11 +410,81 @@ export function EditorCanvas() {
     };
   }, [isPanning, setPanning, setViewportTransform]);
 
+  // Drag and drop functionality
+  useEffect(() => {
+    const handleFile = (file: File) => {
+      const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        alert('Please upload a valid image file (PNG, JPEG, GIF, or WebP)');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const imgUrl = event.target?.result as string;
+        setBackgroundImage(imgUrl);
+      };
+      reader.readAsDataURL(file);
+    };
+
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDraggingFile(true);
+    };
+
+    const handleDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      // Check if we're leaving the canvas container entirely
+      if (e.currentTarget instanceof HTMLElement) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX;
+        const y = e.clientY;
+        
+        if (x <= rect.left || x >= rect.right || y <= rect.top || y >= rect.bottom) {
+          setIsDraggingFile(false);
+        }
+      }
+    };
+
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDraggingFile(false);
+
+      const files = e.dataTransfer?.files;
+      if (files && files.length > 0) {
+        handleFile(files[0]);
+      }
+    };
+
+    const canvasContainer = canvasRef.current?.parentElement?.parentElement;
+    if (canvasContainer) {
+      canvasContainer.addEventListener('dragover', handleDragOver);
+      canvasContainer.addEventListener('dragleave', handleDragLeave);
+      canvasContainer.addEventListener('drop', handleDrop);
+
+      return () => {
+        canvasContainer.removeEventListener('dragover', handleDragOver);
+        canvasContainer.removeEventListener('dragleave', handleDragLeave);
+        canvasContainer.removeEventListener('drop', handleDrop);
+      };
+    }
+  }, [setBackgroundImage]);
+
   return (
     <div className="flex-1 bg-gray-100 p-8 overflow-auto">
       <div className="flex items-center justify-center min-h-[600px]">
-        <div className="shadow-2xl">
+        <div className={`shadow-2xl relative ${isDraggingFile ? 'ring-4 ring-blue-500 ring-opacity-50' : ''}`}>
           <canvas ref={canvasRef} className="border border-gray-300" />
+          {isDraggingFile && (
+            <div className="absolute inset-0 bg-blue-500 bg-opacity-20 flex items-center justify-center pointer-events-none">
+              <div className="bg-white px-6 py-3 rounded-lg shadow-lg">
+                <p className="text-gray-800 font-medium">Drop image here</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

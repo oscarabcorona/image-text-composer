@@ -126,6 +126,12 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       const imageWidth = img.width || 800;
       const imageHeight = img.height || 600;
 
+      // Validate image dimensions
+      if (imageWidth > EDITOR_CONSTANTS.CANVAS.MAX_WIDTH || imageHeight > EDITOR_CONSTANTS.CANVAS.MAX_HEIGHT) {
+        alert(`Image too large: ${imageWidth}x${imageHeight}. Max supported: ${EDITOR_CONSTANTS.CANVAS.MAX_WIDTH}x${EDITOR_CONSTANTS.CANVAS.MAX_HEIGHT}`);
+        return;
+      }
+
       // Only resize if necessary
       const needsResize = imageWidth > canvas.width || imageHeight > canvas.height;
       
@@ -588,6 +594,12 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       return;
     }
 
+    // For toolbar zoom controls, zoom to center of canvas
+    const centerPoint = new fabric.Point(
+      canvas.getWidth() / 2,
+      canvas.getHeight() / 2
+    );
+
     // Smooth zoom animation
     const startTime = Date.now();
     const duration = EDITOR_CONSTANTS.ZOOM.ANIMATION_DURATION;
@@ -598,13 +610,21 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
       
-      // Ease-out cubic for smooth deceleration
-      const easeOut = 1 - Math.pow(1 - progress, 3);
-      const currentZoom = startZoom + deltaZoom * easeOut;
+      // Ease-in-out for smooth acceleration and deceleration
+      const easeInOut = progress < 0.5
+        ? 2 * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      const currentZoom = startZoom + deltaZoom * easeInOut;
       
-      canvas.setZoom(currentZoom);
+      canvas.zoomToPoint(centerPoint, currentZoom);
       canvas.requestRenderAll();
-      set({ zoomLevel: currentZoom });
+      
+      // Update state with current zoom and viewport transform
+      const vpt = canvas.viewportTransform;
+      set({ 
+        zoomLevel: currentZoom,
+        viewportTransform: vpt ? [...vpt] : [1, 0, 0, 1, 0, 0]
+      });
 
       if (progress < 1) {
         requestAnimationFrame(animateZoom);
@@ -627,7 +647,18 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   },
 
   resetZoom: () => {
-    get().setZoomLevel(EDITOR_CONSTANTS.ZOOM.DEFAULT);
+    const { canvas } = get();
+    if (!canvas) return;
+    
+    // Reset viewport transform to identity matrix
+    canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+    canvas.setZoom(1);
+    canvas.requestRenderAll();
+    
+    set({
+      zoomLevel: EDITOR_CONSTANTS.ZOOM.DEFAULT,
+      viewportTransform: [1, 0, 0, 1, 0, 0]
+    });
   },
 
   fitToWindow: () => {
@@ -649,7 +680,25 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     const scaleY = containerHeight / contentHeight;
     const scale = Math.min(scaleX, scaleY) * 0.9; // 90% to leave some padding
 
-    get().setZoomLevel(scale);
+    // Reset viewport and center the content
+    canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+    canvas.setZoom(scale);
+    
+    // Center the content
+    const scaledWidth = contentWidth * scale;
+    const scaledHeight = contentHeight * scale;
+    const translateX = (containerWidth - scaledWidth) / 2;
+    const translateY = (containerHeight - scaledHeight) / 2;
+    
+    canvas.viewportTransform[4] = translateX;
+    canvas.viewportTransform[5] = translateY;
+    
+    canvas.requestRenderAll();
+    
+    set({
+      zoomLevel: scale,
+      viewportTransform: [...canvas.viewportTransform]
+    });
   },
 
   // Pan actions

@@ -2,8 +2,8 @@ export const EDITOR_CONSTANTS = {
   CANVAS: {
     MIN_WIDTH: 400,
     MIN_HEIGHT: 300,
-    MAX_WIDTH: 4000,
-    MAX_HEIGHT: 3000,
+    MAX_WIDTH: 10000,
+    MAX_HEIGHT: 10000,
     DEFAULT_WIDTH: 1200,
     DEFAULT_HEIGHT: 800,
     BACKGROUND_COLOR: '#f5f5f5',
@@ -39,11 +39,11 @@ export const EDITOR_CONSTANTS = {
   },
   ZOOM: {
     MIN: 0.1,
-    MAX: 3,
-    STEP: 0.05, // Reduced from 0.1 for smoother zoom
+    MAX: 5,
+    STEP: 0.1, // Smooth step for toolbar buttons
     DEFAULT: 1,
     WHEEL_DELTA: 0.02, // Reduced for smoother wheel zoom
-    ANIMATION_DURATION: 150, // ms for smooth transitions
+    ANIMATION_DURATION: 250, // ms for smooth transitions
     PRESETS: [0.25, 0.5, 0.75, 1, 1.5, 2],
   },
 } as const;
