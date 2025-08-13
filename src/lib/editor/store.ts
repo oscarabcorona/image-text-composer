@@ -42,6 +42,7 @@ interface EditorStore extends CanvasState {
   toggleLeftPanel: () => void;
   toggleLayersPanel: () => void;
   toggleHistoryPanel: () => void;
+  toggleAllPanels: () => void;
 
   // Layer actions
   addTextLayer: (text?: string) => TextLayer;
@@ -684,5 +685,17 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
   toggleHistoryPanel: () => {
     set((state) => ({ historyPanelCollapsed: !state.historyPanelCollapsed }));
+  },
+
+  toggleAllPanels: () => {
+    const state = get();
+    // If any panel is expanded, collapse all; otherwise expand all
+    const anyExpanded = !state.leftPanelCollapsed || !state.layersPanelCollapsed || !state.historyPanelCollapsed;
+    
+    set({
+      leftPanelCollapsed: anyExpanded,
+      layersPanelCollapsed: anyExpanded,
+      historyPanelCollapsed: anyExpanded,
+    });
   },
 }));

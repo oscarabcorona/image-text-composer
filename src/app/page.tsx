@@ -10,7 +10,7 @@ import { useEditorStore } from '@/lib/editor/store';
 import { useAutoSave } from '@/hooks/editor/useAutoSave';
 
 export default function Home() {
-  const { undo, redo, canUndo, canRedo, loadState } = useEditorStore();
+  const { undo, redo, canUndo, canRedo, loadState, toggleAllPanels } = useEditorStore();
   useAutoSave();
 
   // Load saved state on mount
@@ -39,6 +39,10 @@ export default function Home() {
         } else if (e.key === 'y' && canRedo()) {
           e.preventDefault();
           redo();
+        } else if (e.key === 'b') {
+          // Toggle all panels with Cmd/Ctrl + B
+          e.preventDefault();
+          toggleAllPanels();
         }
       }
       
@@ -51,7 +55,7 @@ export default function Home() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo, canUndo, canRedo]);
+  }, [undo, redo, canUndo, canRedo, toggleAllPanels]);
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">

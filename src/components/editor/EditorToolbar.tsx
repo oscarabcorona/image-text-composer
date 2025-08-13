@@ -24,7 +24,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-// Removed fabric import as we'll pass data URL directly
+import * as fabric from 'fabric';
 
 export function EditorToolbar() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,7 +58,6 @@ export function EditorToolbar() {
     const file = e.target.files?.[0];
     if (!file || !canvas) return;
 
-    // Validate file type - accept common image formats
     const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
     if (!validTypes.includes(file.type)) {
       alert('Please upload a valid image file (PNG, JPEG, GIF, or WebP)');
@@ -68,9 +67,6 @@ export function EditorToolbar() {
     const reader = new FileReader();
     reader.onload = (event) => {
       const imgUrl = event.target?.result as string;
-      
-      // Pass the data URL directly to setBackgroundImage
-      // The store will handle loading and scaling
       setBackgroundImage(imgUrl);
     };
     reader.readAsDataURL(file);
@@ -81,28 +77,260 @@ export function EditorToolbar() {
     addTextLayer('Add your text here');
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!canvas) return;
 
-    // Calculate multiplier to export at original image dimensions
-    const multiplierX = originalImageWidth / canvasWidth;
-    const multiplierY = originalImageHeight / canvasHeight;
-    const multiplier = Math.max(multiplierX, multiplierY);
+    const exportButton = Array.from(document.querySelectorAll('button')).find(
+      btn => btn.textContent?.includes('Export PNG')
+    ) as HTMLButtonElement;
+    const originalText = exportButton?.textContent;
+    if (exportButton) {
+      exportButton.disabled = true;
+      exportButton.textContent = 'Exporting...';
+    }
 
-    // Get the canvas as data URL at original dimensions
-    const dataURL = canvas.toDataURL({
-      format: 'png',
-      quality: 1,
-      multiplier: multiplier,
-    });
+    try {
+      // Check for reasonable canvas size limits
+      const maxDimension = 4000;
+      if (originalImageWidth > maxDimension || originalImageHeight > maxDimension) {
+        throw new Error(`Image too large: ${originalImageWidth}x${originalImageHeight}. Max supported: ${maxDimension}x${maxDimension}`);
+      }
 
-    // Create download link
-    const link = document.createElement('a');
-    link.download = 'image-text-composition.png';
-    link.href = dataURL;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      // Check if there are objects to export (beyond background)
+      const objects = canvas.getObjects();
+      const hasObjects = objects.length > 0;
+
+      let dataURL: string;
+
+      if (hasObjects) {
+        // Store current state
+        const currentZoom = canvas.getZoom();
+        const currentVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : [1, 0, 0, 1, 0, 0];
+
+        // Reset canvas view for clean capture
+        canvas.setZoom(1);
+        canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+        canvas.renderAll();
+
+        // Check if canvas matches original dimensions
+        if (canvas.getWidth() === originalImageWidth && canvas.getHeight() === originalImageHeight) {
+          // Canvas already at target size, export directly
+          dataURL = canvas.toDataURL({
+            format: 'png',
+            quality: 1,
+            multiplier: 1,
+            enableRetinaScaling: false
+          });
+        } else {
+          // Canvas is different size, need to scale
+          const multiplier = Math.max(
+            originalImageWidth / canvas.getWidth(),
+            originalImageHeight / canvas.getHeight()
+          );
+          
+          dataURL = canvas.toDataURL({
+            format: 'png',
+            quality: 1,
+            multiplier: multiplier,
+            enableRetinaScaling: false
+          });
+        }
+
+        // Restore original canvas state
+        canvas.setZoom(currentZoom);
+        canvas.setViewportTransform(currentVpt);
+        canvas.renderAll();
+
+      } else {
+        
+        // Store current state and reset for clean capture
+        const currentZoom = canvas.getZoom();
+        const currentVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : [1, 0, 0, 1, 0, 0];
+
+        // Reset canvas view for clean export
+        canvas.setZoom(1);
+        canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+        canvas.renderAll();
+
+        const exportCanvas = document.createElement('canvas');
+        exportCanvas.width = originalImageWidth;
+        exportCanvas.height = originalImageHeight;
+        const exportCtx = exportCanvas.getContext('2d');
+
+        if (!exportCtx) {
+          throw new Error('Failed to create export canvas context');
+        }
+
+        
+        // Use Fabric.js toDataURL with multiplier to get exact dimensions
+        const fabricDataURL = canvas.toDataURL({
+          format: 'png',
+          quality: 1,
+          multiplier: originalImageWidth / canvas.getWidth(), // Scale to exact target width
+          width: originalImageWidth,
+          height: originalImageHeight
+        });
+
+
+        // Load the fabric export into our export canvas to verify dimensions
+        const img = new Image();
+        
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => {
+            // Fill background color first
+            exportCtx.fillStyle = canvas.backgroundColor || '#ffffff';
+            exportCtx.fillRect(0, 0, originalImageWidth, originalImageHeight);
+            
+            // Draw the fabric export to our export canvas
+            exportCtx.drawImage(img, 0, 0, originalImageWidth, originalImageHeight);
+            resolve();
+          };
+          
+          img.onerror = () => reject(new Error('Failed to load fabric export'));
+          img.src = fabricDataURL;
+        });
+
+        // Generate final data URL from our verified export canvas
+        dataURL = exportCanvas.toDataURL('image/png', 1);
+
+        // Restore original canvas state
+        canvas.setZoom(currentZoom);
+        canvas.setViewportTransform(currentVpt);
+        canvas.renderAll();
+
+        // Clean up
+        exportCanvas.remove();
+      }
+
+      if (!dataURL || dataURL.length < 100) {
+        throw new Error('Generated data URL is invalid or empty');
+      }
+
+      // Verify exported image dimensions
+      const verificationImg = new Image();
+      await new Promise<void>((resolve) => {
+        verificationImg.onload = () => {
+          const dimensionsMatch = (
+            verificationImg.naturalWidth === originalImageWidth && 
+            verificationImg.naturalHeight === originalImageHeight
+          );
+          
+          if (!dimensionsMatch) {
+            console.error('Export dimensions mismatch:', {
+              expected: `${originalImageWidth}x${originalImageHeight}`,
+              actual: `${verificationImg.naturalWidth}x${verificationImg.naturalHeight}`
+            });
+          }
+          resolve();
+        };
+        verificationImg.onerror = () => {
+          resolve();
+        };
+        verificationImg.src = dataURL;
+      });
+
+      // Create download link
+      const link = document.createElement('a');
+      link.download = 'image-text-composition.png';
+      link.href = dataURL;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+
+    } catch (error) {
+      console.error('💥 Export failed:', error);
+      
+      // Try fallback method if the main export fails
+      if (error instanceof Error && (error.message.includes('timeout') || error.message.includes('callback never fired'))) {
+        console.log('🔄 Attempting fallback export method...');
+        try {
+          // Fallback: Use direct canvas copying method
+          const currentZoom = canvas.getZoom();
+          const currentVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : [1, 0, 0, 1, 0, 0];
+
+          // Reset canvas view for clean export
+          canvas.setZoom(1);
+          canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+          canvas.renderAll();
+
+          // Create export canvas with original dimensions
+          const exportCanvas = document.createElement('canvas');
+          exportCanvas.width = originalImageWidth;
+          exportCanvas.height = originalImageHeight;
+          const exportCtx = exportCanvas.getContext('2d');
+
+          if (exportCtx) {
+            // Fill background
+            exportCtx.fillStyle = canvas.backgroundColor || '#ffffff';
+            exportCtx.fillRect(0, 0, originalImageWidth, originalImageHeight);
+
+            // Draw the canvas content with precise dimensions using ACTUAL source dimensions
+            const fabricCanvasElement = canvas.getElement();
+            const actualSourceWidth = fabricCanvasElement.width;
+            const actualSourceHeight = fabricCanvasElement.height;
+            
+            exportCtx.drawImage(
+              fabricCanvasElement,     // source
+              0, 0,                   // source x, y
+              actualSourceWidth, actualSourceHeight,  // ACTUAL source width, height  
+              0, 0,                   // destination x, y
+              originalImageWidth, originalImageHeight  // destination width, height
+            );
+            
+            console.log(`🔄 Fallback: Drew source (${actualSourceWidth}x${actualSourceHeight}) to target (${originalImageWidth}x${originalImageHeight})`);
+
+            // Generate data URL
+            const dataURL = exportCanvas.toDataURL('image/png', 1);
+
+            // Restore original canvas state
+            canvas.setZoom(currentZoom);
+            canvas.setViewportTransform(currentVpt);
+            canvas.renderAll();
+
+            // Clean up
+            exportCanvas.remove();
+
+            if (dataURL && dataURL.length > 100) {
+              // Create download link
+              const link = document.createElement('a');
+              link.download = 'image-text-composition.png';
+              link.href = dataURL;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+
+              console.log('✅ Fallback export completed successfully!');
+              return; // Success, exit early
+            }
+          }
+        } catch (fallbackError) {
+          console.error('💥 Fallback export also failed:', fallbackError);
+        }
+      }
+      
+      // Provide specific error messages
+      let errorMessage = 'Failed to export image. ';
+      if (error instanceof Error) {
+        if (error.message.includes('timeout')) {
+          errorMessage += 'The image is too complex or large. Try reducing the image size or removing some elements.';
+        } else if (error.message.includes('too large')) {
+          errorMessage += error.message;
+        } else {
+          errorMessage += 'Please try again or contact support if the problem persists.';
+        }
+      } else {
+        errorMessage += 'Unknown error occurred.';
+      }
+      
+      alert(errorMessage);
+    } finally {
+      // Restore export button
+      if (exportButton && originalText) {
+        exportButton.disabled = false;
+        exportButton.textContent = originalText;
+      }
+    }
   };
 
   const handleReset = () => {
@@ -311,6 +539,11 @@ export function EditorToolbar() {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Nudge Faster</span>
                     <kbd className="px-2 py-1 text-xs bg-gray-100 rounded">Shift + Arrow Keys</kbd>
+                  </div>
+                  <hr className="my-2" />
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Toggle All Panels</span>
+                    <kbd className="px-2 py-1 text-xs bg-gray-100 rounded">Ctrl/Cmd + B</kbd>
                   </div>
                 </div>
               </div>
