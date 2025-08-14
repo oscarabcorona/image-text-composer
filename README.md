@@ -321,4 +321,4 @@ This project was built for the Adomate coding challenge, demonstrating:
 
 ---
 
-Built with ❤️ using modern web technologies
+Built with ❤️ from Guatemala using modern web technologies
